@@ -531,13 +531,31 @@ if __name__ == "__main__":
             
             print(f"\n✓ Page {page} complete. Total scraped: {len(scraper.cars)}")
             
-            # Save progress
-            scraper.save_progress(page)
-            
-            # Remove duplicates every 5 pages
-            if page % 5 == 0:
-                print(f"\n🔍 Checking for duplicates...")
+            # Save to dataset every 10 pages
+            if page % 10 == 0 or page == end_page:
+                print(f"\n{'='*50}")
+                print(f"💾 Saving data after page {page}...")
+                print(f"{'='*50}")
+                
+                # Remove duplicates before saving
+                print(f"🔍 Checking for duplicates...")
                 scraper.remove_duplicates()
+                
+                # Save to Excel
+                if scraper.cars:
+                    if append_mode:
+                        scraper.save_to_excel(scraper.main_dataset_file, append_mode=True)
+                    else:
+                        scraper.save_to_excel(scraper.main_dataset_file, append_mode=False)
+                    
+                    # Save progress after successful save
+                    scraper.save_progress(page)
+                    print(f"✓ Progress saved: Last page = {page}")
+                    
+                    # Clear cars list to avoid re-saving same data
+                    scraper.cars = []
+                else:
+                    print("⚠️  No new cars to save")
             
             time.sleep(3)
         
@@ -548,36 +566,43 @@ if __name__ == "__main__":
         print("\n\n⚠️  Scraping interrupted by user.")
         if scraper.driver:
             scraper.driver.quit()
-        # Save progress even if interrupted
+        # Save any remaining data if interrupted
         if scraper.cars:
+            print("\n💾 Saving remaining data before exit...")
+            scraper.remove_duplicates()
+            if append_mode:
+                scraper.save_to_excel(scraper.main_dataset_file, append_mode=True)
+            else:
+                scraper.save_to_excel(scraper.main_dataset_file, append_mode=False)
             scraper.save_progress(page)
     except Exception as e:
         print(f"\n❌ Error during scraping: {str(e)}")
         if scraper.driver:
             scraper.driver.quit()
+        # Save any data collected before error
+        if scraper.cars:
+            print("\n💾 Saving data collected before error...")
+            scraper.remove_duplicates()
+            if append_mode:
+                scraper.save_to_excel(scraper.main_dataset_file, append_mode=True)
+            else:
+                scraper.save_to_excel(scraper.main_dataset_file, append_mode=False)
     
-    # Final duplicate check
-    if scraper.cars:
-        print(f"\n🔍 Final duplicate check...")
-        scraper.remove_duplicates()
-    
-    # Save to Excel
+    # Final save for any remaining data (shouldn't be needed if saving every 10 pages)
     if scraper.cars:
         print("\n" + "=" * 50)
-        print("Saving data...")
+        print("💾 Final save of remaining data...")
         print("=" * 50)
+        
+        scraper.remove_duplicates()
         
         if append_mode:
             scraper.save_to_excel(scraper.main_dataset_file, append_mode=True)
         else:
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f'pakwheels_cars_{timestamp}.xlsx'
-            scraper.save_to_excel(filename, append_mode=False)
-            
-            # Also save as main dataset if user wants
-            save_as_main = input("\nSave this as the main dataset? (yes/no): ").strip().lower()
-            if save_as_main == 'yes':
-                scraper.save_to_excel(scraper.main_dataset_file, append_mode=False)
-                print(f"✓ Also saved as main dataset: {scraper.main_dataset_file}")
-    else:
-        print("\n⚠️  No cars scraped. Nothing to save.")
+            scraper.save_to_excel(scraper.main_dataset_file, append_mode=False)
+        
+        scraper.save_progress(page)
+    
+    print("\n" + "=" * 50)
+    print("✓ Scraping Complete!")
+    print("=" * 50)

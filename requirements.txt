@@ -5,3 +5,6 @@ pandas
 openpyxl
 lxml
 webdriver-manager
+groq
+pillow
+python-dotenv
